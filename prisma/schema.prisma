@@ -1,0 +1,90 @@
+// schema.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")  // Ensure DATABASE_URL is set in your .env file
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String
+  phoneNumber   String    @unique
+  address       String
+  password      String
+  role          Role      @default(USER)
+  profilePicture String?
+  products      Product[] // Relation to products
+  comments      Comment[] // Relation to comments
+  orders        Order[]   // Relation to orders
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String
+  products    Product[] // Relation to products
+}
+
+model Product {
+  id              Int       @id @default(autoincrement())
+  name            String
+  description     String
+  price           Float     // Price as a float for easier calculations
+  imageUrl        String?
+  userId          Int
+  categoryId      Int        // Foreign key for Category
+  user            User      @relation(fields: [userId], references: [id])
+  category        Category  @relation(fields: [categoryId], references: [id]) // Relation with Category
+  comments        Comment[] // Relation to comments
+  orders          Order[]   // Relation to orders
+}
+
+model Comment {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  productId Int
+  rating    Int       @default(1)  // Rating between 1-5
+  text      String
+  timestamp DateTime  @default(now())  // Automatically set the current timestamp
+  user      User      @relation(fields: [userId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@index([productId]) // Optional: Index for performance when querying by product
+}
+
+model Order {
+  id           Int       @id @default(autoincrement())
+  productId    Int
+  product      Product   @relation(fields: [productId], references: [id])
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id])
+  weight       Float
+  condition    String    // Dynamic condition based on product
+  price        Float     // Converted to float for calculations
+  address      String
+  paymentMethod PaymentMethod
+  status       OrderStatus @default(PENDING)
+  timestamp    DateTime  @default(now())
+}
+
+enum PaymentMethod {
+  QRIS
+  TUNAI
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  SHIPPED
+  COMPLETED
+  CANCELLED
+}
+
+enum Role {
+  USER
+  ADMIN
+}
