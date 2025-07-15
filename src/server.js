@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 5000;
 
 // ✅ Tambahkan middleware CORS DI SINI
 app.use(cors({
-  origin: ["http://localhost:5173"], // ganti dengan frontend kamu
+  origin: ["http://localhost:5173"], // ganti dengan frontend kamu ["http://localhost:5173","https://your-frontend-domain.com"]
   credentials: true
 }));
 
