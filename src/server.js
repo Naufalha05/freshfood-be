@@ -1,6 +1,7 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
+const cors = require('cors'); // <-- Tambahkan ini
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
@@ -13,6 +14,12 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// ✅ Tambahkan middleware CORS DI SINI
+app.use(cors({
+  origin: ["http://localhost:5173"], // ganti dengan frontend kamu
+  credentials: true
+}));
 
 app.use(express.json());
 app.use(cookieParser()); // Add cookie-parser middleware to handle cookies
