@@ -1,17 +1,22 @@
-// src/routes/orderRoutes.js
 const express = require('express');
 const OrderController = require('../controllers/orderController');
-const authenticateJWT = require('../middleware/authMiddleware'); // Middleware for JWT authentication
+const authenticateJWT = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// Route for creating new orders
+// Buat pesanan baru (untuk user)
 router.post('/', authenticateJWT, OrderController.createOrder);
 
-// Route for updating orders by users (Only the user who created the order can update it)
-router.put('/:orderId', authenticateJWT, OrderController.updateOrder);
+// Ambil semua pesanan (khusus admin)
+router.get('/', authenticateJWT, OrderController.getAllOrders);
 
-// Route for deleting orders by users (Only the user who created the order can delete it)
-router.delete('/:orderId', authenticateJWT, OrderController.deleteOrder);
+// Ambil pesanan milik user yang sedang login
+router.get('/my', authenticateJWT, OrderController.getMyOrders);
+
+// Perbarui pesanan (hanya pemilik pesanan)
+router.put('/:id', authenticateJWT, OrderController.updateOrder);
+
+// Hapus pesanan (hanya pemilik pesanan)
+router.delete('/:id', authenticateJWT, OrderController.deleteOrder);
 
 module.exports = router;
