@@ -1,25 +1,21 @@
-const ProductModel = require('../models/productModel'); // Mengimpor ProductModel
+const ProductModel = require('../models/productModel');
 
 class ProductService {
-  // Menambah produk baru
-  async addProduct(data) {
-    return await ProductModel.createProduct(data);
-  }
-
-  // Mendapatkan semua produk
-  async getProducts() {
-    return await ProductModel.getAllProducts();
-  }
-
-  // Memperbarui produk
-  async updateProduct(id, data) {
-    return await ProductModel.updateProduct(id, data);
-  }
-
-  // Menghapus produk
-  async deleteProduct(id) {
-    return await ProductModel.deleteProduct(id);
-  }
+async addProduct(data) {
+return await ProductModel.createProduct(data);
 }
 
-module.exports = new ProductService(); // Menyediakan instance ProductService
+async getProducts() {
+return await ProductModel.getAllProducts();
+}
+
+async updateProduct(id, data) {
+return await ProductModel.updateProduct(id, data);
+}
+
+async deleteProduct(id) {
+return await ProductModel.deleteProduct(id);
+}
+}
+
+module.exports = new ProductService();
