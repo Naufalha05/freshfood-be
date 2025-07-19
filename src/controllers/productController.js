@@ -18,9 +18,6 @@ const { name, description, price, categoryId } = req.body;
 const { userId } = req.user;
 let imageUrl = null;
 
-php
-Salin
-Edit
 if (req.file) {
   imageUrl = path.join('uploads', req.file.filename);
 }
@@ -59,9 +56,6 @@ const { id } = req.params;
 const { name, description, price, categoryId } = req.body;
 let imageUrl = null;
 
-php
-Salin
-Edit
 if (req.file) {
   imageUrl = path.join('uploads', req.file.filename);
 }
@@ -96,9 +90,6 @@ try {
 async deleteProduct(req, res) {
 const { id } = req.params;
 
-php
-Salin
-Edit
 try {
   await ProductService.deleteProduct(id);
   res.json({ message: 'Product deleted successfully' });
