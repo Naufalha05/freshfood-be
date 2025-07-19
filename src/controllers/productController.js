@@ -2,7 +2,7 @@ const ProductService = require('../services/productService');
 const path = require('path');
 
 class ProductController {
-// Mendapatkan semua produk (bisa diakses siapa saja)
+// Get all products (Available to all users)
 async getProducts(req, res) {
 try {
 const products = await ProductService.getProducts();
@@ -12,88 +12,98 @@ res.status(400).json({ message: error.message });
 }
 }
 
-// Menambahkan produk baru (khusus admin)
+// Add a new product (Admin only)
 async addProduct(req, res) {
-try {
 const { name, description, price, categoryId } = req.body;
 const { userId } = req.user;
- // Validasi dan konversi
-  const parsedCategoryId = parseInt(categoryId);
-  const parsedPrice = parseFloat(price.toString().replace(/[^\d.-]/g, ''));
+let imageUrl = null;
 
-  if (isNaN(parsedCategoryId) || isNaN(parsedPrice)) {
-    return res.status(400).json({ message: 'Kategori ID dan harga harus berupa angka' });
-  }
+php
+Salin
+Edit
+if (req.file) {
+  imageUrl = path.join('uploads', req.file.filename);
+}
 
-  let imageUrl = null;
-  if (req.file) {
-    imageUrl = path.join('uploads', req.file.filename);
-  }
+// categoryId must be an integer
+const parsedCategoryId = parseInt(categoryId);
 
+if (isNaN(parsedCategoryId)) {
+  return res.status(400).json({
+    message: 'Kategori ID harus berupa angka',
+  });
+}
+
+try {
   const newProduct = await ProductService.addProduct({
     name,
     description,
-    price: parsedPrice,
+    price, // Keep as string
     categoryId: parsedCategoryId,
     imageUrl,
-    userId
+    userId,
   });
 
   res.status(201).json({
-    message: 'Produk berhasil ditambahkan',
-    product: newProduct
+    message: 'Product added successfully',
+    product: newProduct,
   });
 } catch (error) {
   res.status(400).json({ message: error.message });
 }
 }
 
-// Memperbarui produk (khusus admin)
+// Update an existing product (Admin only)
 async updateProduct(req, res) {
-try {
 const { id } = req.params;
 const { name, description, price, categoryId } = req.body;
+let imageUrl = null;
 
-javascript
+php
 Salin
 Edit
-  const parsedCategoryId = parseInt(categoryId);
-  const parsedPrice = parseFloat(price.toString().replace(/[^\d.-]/g, ''));
+if (req.file) {
+  imageUrl = path.join('uploads', req.file.filename);
+}
 
-  if (isNaN(parsedCategoryId) || isNaN(parsedPrice)) {
-    return res.status(400).json({ message: 'Kategori ID dan harga harus berupa angka' });
-  }
+const parsedCategoryId = parseInt(categoryId);
 
-  let imageUrl = null;
-  if (req.file) {
-    imageUrl = path.join('uploads', req.file.filename);
-  }
+if (isNaN(parsedCategoryId)) {
+  return res.status(400).json({
+    message: 'Kategori ID harus berupa angka',
+  });
+}
 
+try {
   const updatedProduct = await ProductService.updateProduct(id, {
     name,
     description,
-    price: parsedPrice,
+    price,
     categoryId: parsedCategoryId,
     imageUrl,
   });
 
   res.json({
-    message: 'Produk berhasil diperbarui',
-    product: updatedProduct
+    message: 'Product updated successfully',
+    product: updatedProduct,
   });
 } catch (error) {
   res.status(400).json({ message: error.message });
 }
 }
 
-// Menghapus produk (khusus admin)
+// Delete a product (Admin only)
 async deleteProduct(req, res) {
-try {
 const { id } = req.params;
-await ProductService.deleteProduct(id);
-res.json({ message: 'Produk berhasil dihapus' });
+
+php
+Salin
+Edit
+try {
+  await ProductService.deleteProduct(id);
+  res.json({ message: 'Product deleted successfully' });
 } catch (error) {
-res.status(400).json({ message: error.message });
+  res.status(400).json({ message: error.message });
 }
 }
 }
