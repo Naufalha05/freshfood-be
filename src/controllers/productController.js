@@ -1,102 +1,90 @@
 const ProductService = require('../services/productService');
-const path = require('path');
 
 class ProductController {
-// Get all products (Available to all users)
-async getProducts(req, res) {
-try {
-const products = await ProductService.getProducts();
-res.json(products);
-} catch (error) {
-res.status(400).json({ message: error.message });
-}
-}
+  async getProducts(req, res) {
+    try {
+      const products = await ProductService.getProducts();
+      res.json(products);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
 
-// Add a new product (Admin only)
-async addProduct(req, res) {
-const { name, description, price, categoryId } = req.body;
-const { userId } = req.user;
-let imageUrl = null;
+  async addProduct(req, res) {
+    const { name, description, price, categoryId } = req.body;
+    const { userId } = req.user;
+    let imageUrl = null;
 
-if (req.file) {
-  imageUrl = path.join('uploads', req.file.filename);
-}
+    if (req.file) {
+      imageUrl = req.file.path; // URL dari Cloudinary
+    }
 
-// categoryId must be an integer
-const parsedCategoryId = parseInt(categoryId);
+    const parsedCategoryId = parseInt(categoryId);
+    if (isNaN(parsedCategoryId)) {
+      return res.status(400).json({ message: 'Kategori ID harus berupa angka' });
+    }
 
-if (isNaN(parsedCategoryId)) {
-  return res.status(400).json({
-    message: 'Kategori ID harus berupa angka',
-  });
-}
+    try {
+      const newProduct = await ProductService.addProduct({
+        name,
+        description,
+        price,
+        categoryId: parsedCategoryId,
+        imageUrl,
+        userId,
+      });
 
-try {
-  const newProduct = await ProductService.addProduct({
-    name,
-    description,
-    price, // Keep as string
-    categoryId: parsedCategoryId,
-    imageUrl,
-    userId,
-  });
+      res.status(201).json({
+        message: 'Product added successfully',
+        product: newProduct,
+      });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
 
-  res.status(201).json({
-    message: 'Product added successfully',
-    product: newProduct,
-  });
-} catch (error) {
-  res.status(400).json({ message: error.message });
-}
-}
+  async updateProduct(req, res) {
+    const { id } = req.params;
+    const { name, description, price, categoryId } = req.body;
+    let imageUrl = null;
 
-// Update an existing product (Admin only)
-async updateProduct(req, res) {
-const { id } = req.params;
-const { name, description, price, categoryId } = req.body;
-let imageUrl = null;
+    if (req.file) {
+      imageUrl = req.file.path; // URL dari Cloudinary
+    }
 
-if (req.file) {
-  imageUrl = path.join('uploads', req.file.filename);
-}
+    const parsedCategoryId = parseInt(categoryId);
+    if (isNaN(parsedCategoryId)) {
+      return res.status(400).json({ message: 'Kategori ID harus berupa angka' });
+    }
 
-const parsedCategoryId = parseInt(categoryId);
+    try {
+      const updatedProduct = await ProductService.updateProduct(id, {
+        name,
+        description,
+        price,
+        categoryId: parsedCategoryId,
+        imageUrl,
+      });
 
-if (isNaN(parsedCategoryId)) {
-  return res.status(400).json({
-    message: 'Kategori ID harus berupa angka',
-  });
-}
+      res.json({
+        message: 'Product updated successfully',
+        product: updatedProduct,
+      });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
 
-try {
-  const updatedProduct = await ProductService.updateProduct(id, {
-    name,
-    description,
-    price,
-    categoryId: parsedCategoryId,
-    imageUrl,
-  });
+  async deleteProduct(req, res) {
+    const { id } = req.params;
 
-  res.json({
-    message: 'Product updated successfully',
-    product: updatedProduct,
-  });
-} catch (error) {
-  res.status(400).json({ message: error.message });
-}
-}
-
-// Delete a product (Admin only)
-async deleteProduct(req, res) {
-const { id } = req.params;
-
-try {
-  await ProductService.deleteProduct(id);
-  res.json({ message: 'Product deleted successfully' });
-} catch (error) {
-  res.status(400).json({ message: error.message });
-}
-}
+    try {
+      await ProductService.deleteProduct(id);
+      res.json({ message: 'Product deleted successfully' });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
 }
 
 module.exports = new ProductController();
