@@ -1,98 +1,96 @@
-const OrderService = require('../services/orderService');
+const OrderModel = require('../models/orderModel');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
-class OrderController {
-// Buat pesanan baru
-async createOrder(req, res) {
-const { userId } = req.user;
-const { productId, weight, condition, paymentMethod } = req.body;
-try {
-  const newOrder = await OrderService.createOrder(
-    userId,
-    parseInt(productId),
-    parseFloat(weight),
-    condition,
-    paymentMethod
-  );
+class OrderService {
+  // Membuat pesanan baru
+  async createOrder(userId, productId, weight, condition, paymentMethod) {
+    // Ambil data produk
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+    });
+    if (!product) throw new Error('Produk tidak ditemukan');
 
-  res.status(201).json({
-    message: 'Pesanan berhasil dibuat',
-    order: newOrder,
-  });
-} catch (error) {
-  res.status(500).json({ message: error.message });
-}
-}
+    // Jika produk memiliki opsi kondisi, validasi kondisi
+    if (product.conditionOptions) {
+      let validConditions;
+      try {
+        validConditions = JSON.parse(product.conditionOptions);
+      } catch (e) {
+        throw new Error('Format kondisi produk tidak valid');
+      }
 
-// Lihat semua pesanan (Admin saja)
-async getAllOrders(req, res) {
-const { role } = req.user;
-if (role !== 'ADMIN') {
-  return res.status(403).json({ message: 'Hanya admin yang dapat melihat semua pesanan' });
-}
+      if (!validConditions.includes(condition)) {
+        throw new Error('Kondisi tidak tersedia untuk produk ini');
+      }
+    }
 
-try {
-  const orders = await OrderService.getAllOrders();
-  res.json(orders);
-} catch (error) {
-  res.status(500).json({ message: error.message });
-}
-}
+    const pricePerUnit = parseFloat(product.price);
+    if (isNaN(pricePerUnit)) throw new Error('Format harga produk tidak valid');
 
-// Lihat pesanan milik pengguna yang sedang login
-async getMyOrders(req, res) {
-const { userId } = req.user;
-try {
-  const orders = await OrderService.getOrdersByUser(userId);
-  res.json(orders);
-} catch (error) {
-  res.status(500).json({ message: error.message });
-}
-}
+    const totalPrice = pricePerUnit * weight;
 
-// Perbarui pesanan milik user
-async updateOrder(req, res) {
-const { userId } = req.user;
-const orderId = parseInt(req.params.id);
-const { weight, condition, address, paymentMethod } = req.body;
-try {
-  const order = await OrderService.getOrderById(orderId);
-  if (!order || order.userId !== userId) {
-    return res.status(403).json({ message: 'Anda hanya dapat memperbarui pesanan Anda sendiri' });
+    // Ambil data user untuk alamat
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { address: true },
+    });
+
+    if (!user) throw new Error('Pengguna tidak ditemukan');
+
+    // Validasi dan ubah paymentMethod jadi uppercase
+    const upperPaymentMethod = paymentMethod.toUpperCase();
+    const allowedMethods = ['QRIS', 'TUNAI'];
+    if (!allowedMethods.includes(upperPaymentMethod)) {
+      throw new Error('Metode pembayaran tidak valid. Pilih QRIS atau TUNAI.');
+    }
+
+    // Buat pesanan melalui model
+    return await OrderModel.createOrder({
+      userId,
+      productId,
+      weight,
+      condition,
+      price: totalPrice,
+      paymentMethod: upperPaymentMethod,
+      address: user.address,
+    });
   }
 
-  const updatedOrder = await OrderService.updateOrder(orderId, {
-    weight,
-    condition,
-    address,
-    paymentMethod,
-  });
-
-  res.json({
-    message: 'Pesanan berhasil diperbarui',
-    order: updatedOrder,
-  });
-} catch (error) {
-  res.status(500).json({ message: error.message });
-}
-}
-
-// Hapus pesanan milik user
-async deleteOrder(req, res) {
-const { userId } = req.user;
-const orderId = parseInt(req.params.id);
-try {
-  const order = await OrderService.getOrderById(orderId);
-  if (!order || order.userId !== userId) {
-    return res.status(403).json({ message: 'Anda hanya dapat menghapus pesanan Anda sendiri' });
+  // Ambil semua pesanan (admin)
+  async getAllOrders() {
+    return await OrderModel.getAllOrders();
   }
 
-  await OrderService.deleteOrder(orderId);
+  // Ambil semua pesanan milik user tertentu
+  async getOrdersByUser(userId) {
+    return await OrderModel.getOrdersByUserId(userId);
+  }
 
-  res.json({ message: 'Pesanan berhasil dihapus' });
-} catch (error) {
-  res.status(500).json({ message: error.message });
-}
-}
+  // Ambil satu pesanan berdasarkan ID
+  async getOrderById(id) {
+    return await OrderModel.getOrderById(id);
+  }
+
+  // Perbarui pesanan
+  async updateOrder(id, data) {
+    const allowedMethods = ['QRIS', 'TUNAI'];
+
+    // Pastikan paymentMethod diubah ke uppercase dan valid
+    if (data.paymentMethod) {
+      data.paymentMethod = data.paymentMethod.toUpperCase();
+      if (!allowedMethods.includes(data.paymentMethod)) {
+        throw new Error('Metode pembayaran tidak valid. Pilih QRIS atau TUNAI.');
+      }
+    }
+
+    return await OrderModel.updateOrder(id, data);
+  }
+
+  // Hapus pesanan
+  async deleteOrder(id) {
+    return await OrderModel.deleteOrder(id);
+  }
 }
 
-module.exports = new OrderController();
+module.exports = new OrderService();
