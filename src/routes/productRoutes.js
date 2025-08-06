@@ -1,7 +1,7 @@
 const express = require('express');
 const ProductController = require('../controllers/productController');
 const authenticateJWT = require('../middleware/authMiddleware');
-const upload = require('../middlewares/upload'); // menggunakan Cloudinary
+const upload = require('../middleware/upload'); // menggunakan Cloudinary
 
 const router = express.Router();
 
