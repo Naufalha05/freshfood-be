@@ -75,3 +75,4 @@ async deleteOrder(id) {
 return await OrderModel.deleteOrder(id);
 }
 }
+module.exports = new OrderService();
