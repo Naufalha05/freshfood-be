@@ -36,8 +36,15 @@ class ProductController {
       imageUrl = req.file.path;
     }
 
+    // ✅ Enhanced validation
     if (!name || !description || !price || !categoryId) {
       return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    // ✅ Validate price as string but ensure it's numeric
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      return res.status(400).json({ message: 'Price must be a valid number greater than 0' });
     }
 
     const parsedCategoryId = parseInt(categoryId);
@@ -47,9 +54,9 @@ class ProductController {
 
     try {
       const newProduct = await ProductService.addProduct({
-        name,
-        description,
-        price, // Keep as string sesuai schema Anda
+        name: name.trim(),
+        description: description.trim(),
+        price: price.toString(), // ✅ SIMPAN SEBAGAI STRING
         categoryId: parsedCategoryId,
         imageUrl,
         userId,
@@ -61,7 +68,18 @@ class ProductController {
       });
     } catch (error) {
       console.error('Error creating product:', error);
-      res.status(500).json({ message: error.message });
+      
+      if (error.code === 'P2002') {
+        return res.status(409).json({ message: 'Product with this name already exists' });
+      }
+      if (error.code === 'P2003') {
+        return res.status(400).json({ message: 'Invalid category ID or user ID' });
+      }
+      
+      res.status(500).json({ 
+        message: 'Failed to create product',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
     }
   }
 
@@ -78,6 +96,11 @@ class ProductController {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      return res.status(400).json({ message: 'Price must be a valid number greater than 0' });
+    }
+
     const parsedCategoryId = parseInt(categoryId);
     if (isNaN(parsedCategoryId)) {
       return res.status(400).json({ message: 'Invalid category ID' });
@@ -87,7 +110,7 @@ class ProductController {
       const updateData = {
         name,
         description,
-        price, // Keep as string sesuai schema Anda
+        price: price.toString(), // ✅ SIMPAN SEBAGAI STRING
         categoryId: parsedCategoryId
       };
 
@@ -110,7 +133,6 @@ class ProductController {
     }
   }
 
-  // ✅ Enhanced delete with proper error status codes
   async deleteProduct(req, res) {
     const { id } = req.params;
 

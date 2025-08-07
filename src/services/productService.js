@@ -3,8 +3,31 @@ const ProductModel = require('../models/productModel');
 class ProductService {
   async addProduct(data) {
     try {
-      return await ProductModel.createProduct(data);
+      // ✅ Validate data before creating
+      if (!data.name || !data.description || !data.price || !data.categoryId || !data.userId) {
+        throw new Error('Missing required fields');
+      }
+
+      // ✅ Validate price is string but represents valid number
+      const numericPrice = parseFloat(data.price);
+      if (isNaN(numericPrice) || numericPrice <= 0) {
+        throw new Error('Price must be a valid number string');
+      }
+
+      // ✅ Ensure price is string
+      const productData = {
+        ...data,
+        price: data.price.toString()
+      };
+
+      return await ProductModel.createProduct(productData);
     } catch (error) {
+      console.error('ProductService.addProduct error:', {
+        message: error.message,
+        code: error.code,
+        data: data
+      });
+      
       throw new Error(`Failed to create product: ${error.message}`);
     }
   }
@@ -23,6 +46,16 @@ class ProductService {
       if (!existingProduct) {
         throw new Error('Product not found');
       }
+
+      // ✅ Ensure price is string if provided
+      if (data.price) {
+        const numericPrice = parseFloat(data.price);
+        if (isNaN(numericPrice) || numericPrice <= 0) {
+          throw new Error('Price must be a valid number string');
+        }
+        data.price = data.price.toString();
+      }
+
       return await ProductModel.updateProduct(id, data);
     } catch (error) {
       throw new Error(`Failed to update product: ${error.message}`);
@@ -36,7 +69,7 @@ class ProductService {
         throw new Error('Product not found');
       }
 
-      // ✅ Check for active orders using new method
+      // Check for active orders
       const activeOrders = await ProductModel.getActiveOrders(id);
       
       if (activeOrders.length > 0) {
@@ -48,17 +81,6 @@ class ProductService {
           `Cannot delete product: Product has ${activeOrders.length} active order(s): ${ordersList}. ` +
           `Please complete or cancel these orders first.`
         );
-      }
-
-      // Check for completed orders (for audit trail warning)
-      const allOrders = await ProductModel.checkProductDependencies(id);
-      const completedOrders = allOrders.filter(order => 
-        order.status === 'COMPLETED'
-      );
-
-      if (completedOrders.length > 0) {
-        // Allow deletion but give warning
-        console.warn(`Deleting product with ${completedOrders.length} completed orders`);
       }
 
       return await ProductModel.deleteProduct(id);

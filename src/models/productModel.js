@@ -63,7 +63,6 @@ class ProductModel {
     }
   }
 
-  // ✅ Method baru untuk mengecek active orders
   async getActiveOrders(productId) {
     try {
       const id = parseInt(productId);
@@ -87,39 +86,6 @@ class ProductModel {
           }
         }
       });
-    } catch (error) {
-      throw new Error(`Database error: ${error.message}`);
-    }
-  }
-
-  async checkProductDependencies(id) {
-    try {
-      const productId = parseInt(id);
-      if (isNaN(productId)) {
-        throw new Error('Invalid product ID');
-      }
-
-      const orders = await prisma.order.findMany({
-        where: { productId: productId },
-        select: {
-          id: true,
-          status: true,
-          createdAt: true,
-          price: true,
-          quantity: true,
-          user: {
-            select: {
-              id: true,
-              name: true
-            }
-          }
-        },
-        orderBy: {
-          createdAt: 'desc'
-        }
-      });
-
-      return orders;
     } catch (error) {
       throw new Error(`Database error: ${error.message}`);
     }
