@@ -33,24 +33,23 @@ class ProductController {
     let imageUrl = null;
 
     if (req.file) {
-      imageUrl = req.file.path; // URL dari Cloudinary
+      imageUrl = req.file.path;
     }
 
-    // Validation
     if (!name || !description || !price || !categoryId) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
     const parsedCategoryId = parseInt(categoryId);
     if (isNaN(parsedCategoryId)) {
-      return res.status(400).json({ message: 'Kategori ID harus berupa angka' });
+      return res.status(400).json({ message: 'Invalid category ID' });
     }
 
     try {
       const newProduct = await ProductService.addProduct({
         name,
         description,
-        price: parseFloat(price),
+        price, // Keep as string sesuai schema Anda
         categoryId: parsedCategoryId,
         imageUrl,
         userId,
@@ -72,24 +71,23 @@ class ProductController {
     let imageUrl = null;
 
     if (req.file) {
-      imageUrl = req.file.path; // URL dari Cloudinary
+      imageUrl = req.file.path;
     }
 
-    // Validation
     if (!name || !description || !price || !categoryId) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
     const parsedCategoryId = parseInt(categoryId);
     if (isNaN(parsedCategoryId)) {
-      return res.status(400).json({ message: 'Kategori ID harus berupa angka' });
+      return res.status(400).json({ message: 'Invalid category ID' });
     }
 
     try {
       const updateData = {
         name,
         description,
-        price: parseFloat(price),
+        price, // Keep as string sesuai schema Anda
         categoryId: parsedCategoryId
       };
 
@@ -112,6 +110,7 @@ class ProductController {
     }
   }
 
+  // ✅ Enhanced delete with proper error status codes
   async deleteProduct(req, res) {
     const { id } = req.params;
 
@@ -124,8 +123,14 @@ class ProductController {
       if (error.message.includes('not found')) {
         return res.status(404).json({ message: 'Product not found' });
       }
-      if (error.message.includes('referenced')) {
-        return res.status(409).json({ message: error.message });
+      
+      if (error.message.includes('active order') || 
+          error.message.includes('referenced') ||
+          error.message.includes('complete or cancel')) {
+        return res.status(409).json({ 
+          message: error.message,
+          code: 'PRODUCT_HAS_ACTIVE_ORDERS'
+        });
       }
       
       res.status(500).json({ message: error.message });

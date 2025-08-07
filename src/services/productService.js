@@ -19,7 +19,6 @@ class ProductService {
 
   async updateProduct(id, data) {
     try {
-      // Check if product exists first
       const existingProduct = await ProductModel.getProductById(id);
       if (!existingProduct) {
         throw new Error('Product not found');
@@ -32,21 +31,43 @@ class ProductService {
 
   async deleteProduct(id) {
     try {
-      // Check if product exists first
       const existingProduct = await ProductModel.getProductById(id);
       if (!existingProduct) {
         throw new Error('Product not found');
       }
 
-      // Check for dependent records (orders, etc.)
-      const dependentOrders = await ProductModel.checkProductDependencies(id);
-      if (dependentOrders && dependentOrders.length > 0) {
-        throw new Error('Cannot delete product: Product is referenced in existing orders');
+      // ✅ Check for active orders using new method
+      const activeOrders = await ProductModel.getActiveOrders(id);
+      
+      if (activeOrders.length > 0) {
+        const ordersList = activeOrders.map(order => 
+          `#${order.id} (${order.user.name})`
+        ).join(', ');
+        
+        throw new Error(
+          `Cannot delete product: Product has ${activeOrders.length} active order(s): ${ordersList}. ` +
+          `Please complete or cancel these orders first.`
+        );
+      }
+
+      // Check for completed orders (for audit trail warning)
+      const allOrders = await ProductModel.checkProductDependencies(id);
+      const completedOrders = allOrders.filter(order => 
+        order.status === 'COMPLETED'
+      );
+
+      if (completedOrders.length > 0) {
+        // Allow deletion but give warning
+        console.warn(`Deleting product with ${completedOrders.length} completed orders`);
       }
 
       return await ProductModel.deleteProduct(id);
+      
     } catch (error) {
-      throw new Error(`Failed to delete product: ${error.message}`);
+      if (error.code === 'P2003') {
+        throw new Error('Cannot delete product: Product is still referenced by existing orders');
+      }
+      throw error;
     }
   }
 
