@@ -6,7 +6,24 @@ class ProductController {
       const products = await ProductService.getProducts();
       res.json(products);
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      console.error('Error fetching products:', error);
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async getProductById(req, res) {
+    try {
+      const { id } = req.params;
+      const product = await ProductService.getProductById(id);
+      
+      if (!product) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+      
+      res.json(product);
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      res.status(500).json({ message: error.message });
     }
   }
 
@@ -19,6 +36,11 @@ class ProductController {
       imageUrl = req.file.path; // URL dari Cloudinary
     }
 
+    // Validation
+    if (!name || !description || !price || !categoryId) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
     const parsedCategoryId = parseInt(categoryId);
     if (isNaN(parsedCategoryId)) {
       return res.status(400).json({ message: 'Kategori ID harus berupa angka' });
@@ -28,7 +50,7 @@ class ProductController {
       const newProduct = await ProductService.addProduct({
         name,
         description,
-        price,
+        price: parseFloat(price),
         categoryId: parsedCategoryId,
         imageUrl,
         userId,
@@ -39,7 +61,8 @@ class ProductController {
         product: newProduct,
       });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      console.error('Error creating product:', error);
+      res.status(500).json({ message: error.message });
     }
   }
 
@@ -52,26 +75,40 @@ class ProductController {
       imageUrl = req.file.path; // URL dari Cloudinary
     }
 
+    // Validation
+    if (!name || !description || !price || !categoryId) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
     const parsedCategoryId = parseInt(categoryId);
     if (isNaN(parsedCategoryId)) {
       return res.status(400).json({ message: 'Kategori ID harus berupa angka' });
     }
 
     try {
-      const updatedProduct = await ProductService.updateProduct(id, {
+      const updateData = {
         name,
         description,
-        price,
-        categoryId: parsedCategoryId,
-        imageUrl,
-      });
+        price: parseFloat(price),
+        categoryId: parsedCategoryId
+      };
+
+      if (imageUrl) {
+        updateData.imageUrl = imageUrl;
+      }
+
+      const updatedProduct = await ProductService.updateProduct(id, updateData);
 
       res.json({
         message: 'Product updated successfully',
         product: updatedProduct,
       });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      console.error('Error updating product:', error);
+      if (error.message.includes('not found')) {
+        return res.status(404).json({ message: error.message });
+      }
+      res.status(500).json({ message: error.message });
     }
   }
 
@@ -82,7 +119,16 @@ class ProductController {
       await ProductService.deleteProduct(id);
       res.json({ message: 'Product deleted successfully' });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      console.error('Error deleting product:', error);
+      
+      if (error.message.includes('not found')) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+      if (error.message.includes('referenced')) {
+        return res.status(409).json({ message: error.message });
+      }
+      
+      res.status(500).json({ message: error.message });
     }
   }
 }
