@@ -1,4 +1,4 @@
-// server.js
+// server.js - FIXED untuk Express v5
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
@@ -29,13 +29,13 @@ app.use(cookieParser());
 // ✅ Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', authenticateJWT, userRoutes);
-app.use('/api/products', productRoutes); // ✅ PERBAIKAN: Tidak semua endpoint products perlu auth
+app.use('/api/products', productRoutes);
 app.use('/api/comments', authenticateJWT, commentRoutes);
 app.use('/api/orders', authenticateJWT, orderRoutes);
-app.use('/api/categories', categoryRoutes); // ✅ PERBAIKAN: Tidak semua endpoint categories perlu auth
+app.use('/api/categories', categoryRoutes);
 
-// ✅ 404 Handler - Return JSON
-app.use('*', (req, res) => {
+// ✅ FIXED: 404 Handler untuk Express v5 - Gunakan named wildcard
+app.use('/*catchAll', (req, res) => {
   console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
     success: false,
